@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Flask + LangChain LLaMA3 Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #statusBar {
+            display: none;
+            margin-top: 10px;
+            font-weight: bold;
+            color: blue;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #chatHistory {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 500px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        .userMsg {
+            color: blue;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .llmMsg {
+            color: green;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Chat with LLaMA3</h2>
+    <div id="chatHistory"></div>
+
+    <h3>Enter your text:</h3>
+    <input type="text" id="userInput" placeholder="Type something..." style="width:300px;">
+    <button id="submitBtn" onclick="sendData()">Submit</button>
+
+    <!-- Status bar -->
+    <div id="statusBar">
+        <span class="spinner"></span> Processing...
+    </div>
+
+    <script>
+        function appendMessage(text, type) {
+            const chatHistory = document.getElementById("chatHistory");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = type === "user" ? "userMsg" : "llmMsg";
+            msgDiv.innerText = text;
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+        }
+
+        function sendData() {
+            const text = document.getElementById("userInput").value;
+            if (!text.trim()) return; // Ignore empty input
+
+            // Append user message
+            appendMessage(text, "user");
+
+            // Show status bar
+            document.getElementById("statusBar").style.display = "block";
+
+            fetch("/process", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_input: text }) // Send as-is
+            })
+            .then(response => response.json())
+            .then(data => {
+                appendMessage(data.response, "llm");
+            })
+            .catch(error => {
+                appendMessage("Error: " + error, "llm");
+            })
+            .finally(() => {
+                document.getElementById("statusBar").style.display = "none";
+                document.getElementById("userInput").value = "";
+                document.getElementById("userInput").focus();
+            });
+        }
+
+        // Trigger sendData() when Enter is pressed
+        document.getElementById("userInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendData();
+            }
+        });
+    </script>
+</body>
+</html>
